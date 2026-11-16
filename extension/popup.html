@@ -30,8 +30,16 @@
   <details id="cfg">
     <summary>Configuración</summary>
     <div class="row"><label>Usuario</label><input type="text" id="user" placeholder="ej. raul"></div>
-    <div class="row"><label>Servidor</label><input type="text" id="server" placeholder="http://localhost:3000"></div>
-    <div class="row"><label>API key</label><input type="password" id="apiKey"></div>
+    <div class="row"><label>Entorno</label>
+      <select id="env">
+        <option value="dev">Desarrollo (local)</option>
+        <option value="prod">Producción (Render)</option>
+      </select>
+    </div>
+    <div class="row"><label>Dev URL</label><input type="text" id="server" placeholder="http://localhost:3000"></div>
+    <div class="row"><label>Dev key</label><input type="password" id="apiKey"></div>
+    <div class="row"><label>Prod URL</label><input type="text" id="prodServer" placeholder="https://tu-servicio.onrender.com"></div>
+    <div class="row"><label>Prod key</label><input type="password" id="prodKey"></div>
     <div class="row"><label>Espera (ms)</label><input type="text" id="delay" placeholder="800"></div>
     <div class="row"><label>Textarea</label>
       <select id="method">

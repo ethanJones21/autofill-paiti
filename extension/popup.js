@@ -1,5 +1,6 @@
 const $ = (s) => document.querySelector(s);
-let cfg = { server: 'http://localhost:3000', apiKey: '', user: '', method: 'auto', delay: 800 };
+// server/apiKey = desarrollo; prodServer/prodKey = producción; env elige cuál se usa
+let cfg = { env: 'dev', server: 'http://localhost:3000', apiKey: '', prodServer: '', prodKey: '', user: '', method: 'auto', delay: 800 };
 let capturedButtons = [];
 let tab = null;
 let captured = []; // [{field, row}]
@@ -18,9 +19,12 @@ function status(msg, ok = true) {
 }
 
 async function api(path, opts = {}) {
-  const r = await fetch(cfg.server.replace(/\/$/, '') + path, {
+  const prod = cfg.env === 'prod';
+  const base = prod ? cfg.prodServer : cfg.server;
+  if (!base) throw new Error('Falta la URL del servidor de ' + (prod ? 'producción' : 'desarrollo') + ' en Configuración');
+  const r = await fetch(base.replace(/\/$/, '') + path, {
     ...opts,
-    headers: { 'Content-Type': 'application/json', 'x-api-key': cfg.apiKey },
+    headers: { 'Content-Type': 'application/json', 'x-api-key': prod ? cfg.prodKey : cfg.apiKey },
   });
   if (!r.ok) throw new Error((await r.text()) || 'HTTP ' + r.status);
   return r.json();
@@ -220,13 +224,16 @@ $('#save').onclick = async () => {
 $('#saveCfg').onclick = async () => {
   cfg = {
     user: $('#user').value.trim(),
+    env: $('#env').value,
     server: $('#server').value.trim() || 'http://localhost:3000',
     apiKey: $('#apiKey').value,
+    prodServer: $('#prodServer').value.trim(),
+    prodKey: $('#prodKey').value,
     method: $('#method').value,
     delay: Number($('#delay').value) || 800,
   };
   await chrome.storage.local.set(cfg);
-  $('#who').textContent = cfg.user;
+  $('#who').textContent = cfg.user + ' · ' + (cfg.env === 'prod' ? 'PROD' : 'DEV');
   status('Configuración guardada.');
   loadList();
 };
@@ -374,11 +381,14 @@ $('#reloadFlows').onclick = loadFlows;
   [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   cfg = { ...cfg, ...(await chrome.storage.local.get(Object.keys(cfg))) };
   $('#user').value = cfg.user;
+  $('#env').value = cfg.env;
   $('#server').value = cfg.server;
   $('#apiKey').value = cfg.apiKey;
+  $('#prodServer').value = cfg.prodServer;
+  $('#prodKey').value = cfg.prodKey;
   $('#method').value = cfg.method;
   $('#delay').value = cfg.delay;
-  $('#who').textContent = cfg.user;
+  $('#who').textContent = cfg.user + ' · ' + (cfg.env === 'prod' ? 'PROD' : 'DEV');
   loadList();
   loadFlows();
   recState();
