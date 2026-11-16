@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<style>
+  body { width: 400px; margin: 0; font: 13px/1.4 system-ui, sans-serif; color: #222; }
+  header { background: #2c3e50; color: #fff; padding: 8px 12px; display: flex; justify-content: space-between; align-items: center; }
+  main { padding: 10px 12px; }
+  h3 { margin: 12px 0 6px; font-size: 13px; }
+  input[type=text], input[type=password], select, textarea { width: 100%; box-sizing: border-box; padding: 4px 6px; font: inherit; }
+  button { padding: 4px 10px; cursor: pointer; font: inherit; }
+  button.primary { background: #337ab7; color: #fff; border: 1px solid #2e6da4; }
+  button.danger { color: #a94442; }
+  .row { display: flex; gap: 6px; align-items: center; margin: 4px 0; }
+  .row > label { min-width: 70px; }
+  .form-item { border: 1px solid #ddd; border-radius: 3px; padding: 6px; margin: 4px 0; }
+  .form-item small, .muted { color: #777; }
+  .badge { background: #5cb85c; color: #fff; border-radius: 8px; padding: 0 6px; font-size: 11px; }
+  .field { border-bottom: 1px solid #eee; padding: 4px 0; }
+  .field label.lbl { font-weight: 600; }
+  #status { margin-top: 8px; padding: 6px; border-radius: 3px; display: none; white-space: pre-wrap; }
+  #status.ok { background: #dff0d8; display: block; }
+  #status.err { background: #f2dede; display: block; }
+  details { margin-bottom: 6px; }
+</style>
+</head>
+<body>
+<header><strong>Autofill PAITI</strong><span id="who" class="muted" style="color:#cfd8dc"></span></header>
+<main>
+  <details id="cfg">
+    <summary>Configuración</summary>
+    <div class="row"><label>Usuario</label><input type="text" id="user" placeholder="ej. raul"></div>
+    <div class="row"><label>Servidor</label><input type="text" id="server" placeholder="http://localhost:3000"></div>
+    <div class="row"><label>API key</label><input type="password" id="apiKey"></div>
+    <div class="row"><label>Espera (ms)</label><input type="text" id="delay" placeholder="800"></div>
+    <div class="row"><label>Textarea</label>
+      <select id="method">
+        <option value="auto">Automático (prueba varios métodos)</option>
+        <option value="value">Asignar valor</option>
+        <option value="insert">Insertar texto</option>
+        <option value="drop">Simular arrastrar y soltar</option>
+        <option value="type">Teclear carácter por carácter</option>
+      </select>
+    </div>
+    <button id="saveCfg" class="primary">Guardar configuración</button>
+  </details>
+
+  <h3>Formularios guardados <button id="reload" title="Recargar">↻</button></h3>
+  <div id="list"><span class="muted">Cargando…</span></div>
+
+  <h3>Flujos grabados <button id="reloadFlows" title="Recargar">↻</button></h3>
+  <div id="flows"></div>
+  <button id="rec">● Grabar flujo</button>
+  <div id="recbox" style="display:none"></div>
+
+  <h3>Guardar la página actual</h3>
+  <button id="capture">Capturar campos</button>
+  <div id="captured" style="display:none">
+    <div class="row"><label>Nombre</label><input type="text" id="formName" placeholder="ej. Formulario 1"></div>
+    <div class="row"><label>Botón</label><select id="btnSel"></select></div>
+    <small class="muted">Botón "agregar" que se pulsa entre registros (solo type="button").</small>
+    <div id="fields"></div>
+    <button id="save" class="primary">Guardar formulario</button>
+  </div>
+
+  <div id="status"></div>
+</main>
+<script src="popup.js"></script>
+</body>
+</html>

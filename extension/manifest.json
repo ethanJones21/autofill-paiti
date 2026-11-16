@@ -1,0 +1,12 @@
+{
+  "manifest_version": 3,
+  "name": "Autofill PAITI (uso interno)",
+  "version": "1.0.0",
+  "description": "Guarda y rellena formularios por usuario. Datos en MongoDB vía servidor propio.",
+  "permissions": ["scripting", "activeTab", "storage"],
+  "host_permissions": ["<all_urls>"],
+  "action": {
+    "default_title": "Autofill PAITI",
+    "default_popup": "popup.html"
+  }
+}
