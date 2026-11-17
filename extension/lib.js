@@ -1,6 +1,6 @@
 // Se inyecta en la página (y en todos sus iframes) desde el popup.
 (() => {
-  if (window.__autofill && window.__autofill.v === 4) return;
+  if (window.__autofill && window.__autofill.v === 5) return;
 
   const SKIP_TYPES = new Set(['hidden', 'submit', 'button', 'reset', 'image', 'file', 'password']);
 
@@ -108,10 +108,6 @@
       }
     });
     return bestScore >= 3 ? best : null;
-  }
-
-  function capture() {
-    return { fields: fieldsOf().map(describe), buttons: buttonsOf().map(describeButton) };
   }
 
   // ---- Localizar el elemento por puntaje (no depende de un solo atributo) ----
@@ -254,39 +250,6 @@
   }
 
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-
-  // Registro 1 = fields. Registros extra = [{frame,index,value,text}, ...] sobre los mismos campos.
-  async function fillAll(fields, extras, button, method, delay) {
-    const sets = [fields];
-    for (const ex of extras || []) {
-      sets.push(
-        fields
-          .map((f) => {
-            const x = ex.find((e) => e.frame === f.frame && e.index === f.index);
-            return x ? { ...f, value: x.value, text: x.text } : null;
-          })
-          .filter(Boolean)
-      );
-    }
-    const filled = [];
-    const missing = [];
-    for (let i = 0; i < sets.length; i++) {
-      const pre = sets.length > 1 ? '#' + (i + 1) + ' ' : '';
-      const r = fill(sets[i], method);
-      filled.push(...r.filled.map((n) => pre + n));
-      missing.push(...r.missing.map((n) => pre + n));
-      if (i < sets.length - 1 && button && button.frame === location.pathname) {
-        const b = findButton(button);
-        if (!b) {
-          missing.push('botón "' + button.label + '" no encontrado (se detuvo)');
-          break;
-        }
-        b.click();
-        await sleep(delay || 800);
-      }
-    }
-    return { filled, missing };
-  }
 
   // =================== GRABADOR DE FLUJOS ===================
   // Estado en chrome.storage.local.rec = { active, page, steps:[{k:'fill',f}|{k:'click',b}], ignored:[] }
@@ -514,5 +477,5 @@
     return { filled, missing };
   }
 
-  window.__autofill = { v: 4, capture, fill, fillAll, startRec, play };
+  window.__autofill = { v: 5, fill, startRec, play };
 })();

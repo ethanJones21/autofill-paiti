@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <style>
   body { width: 400px; margin: 0; font: 13px/1.4 system-ui, sans-serif; color: #222; }
-  header { background: #2c3e50; color: #fff; padding: 8px 12px; display: flex; justify-content: space-between; align-items: center; }
+  header { background: #2c3e50; color: #fff; padding: 8px 12px; }
   main { padding: 10px 12px; }
   h3 { margin: 12px 0 6px; font-size: 13px; }
   input[type=text], input[type=password], select, textarea { width: 100%; box-sizing: border-box; padding: 4px 6px; font: inherit; }
@@ -15,9 +15,13 @@
   .row > label { min-width: 70px; }
   .form-item { border: 1px solid #ddd; border-radius: 3px; padding: 6px; margin: 4px 0; }
   .form-item small, .muted { color: #777; }
-  .badge { background: #5cb85c; color: #fff; border-radius: 8px; padding: 0 6px; font-size: 11px; }
+  .badge { background: #777; color: #fff; border-radius: 8px; padding: 0 6px; font-size: 11px; }
+  .badge.public { background: #5cb85c; }
+  .badge.here { background: #337ab7; }
   .field { border-bottom: 1px solid #eee; padding: 4px 0; }
-  .field label.lbl { font-weight: 600; }
+  .tabs { display: flex; border-bottom: 1px solid #ccc; margin: 8px 0 4px; }
+  .tabs button { flex: 1; border: 0; background: none; border-bottom: 2px solid transparent; padding: 6px 4px; }
+  .tabs button.active { border-bottom-color: #337ab7; font-weight: 600; color: #337ab7; }
   #status, #cfgStatus { margin-top: 8px; padding: 6px; border-radius: 3px; display: none; white-space: pre-wrap; word-break: break-word; }
   #status.ok, #cfgStatus.ok { background: #dff0d8; display: block; }
   #status.err, #cfgStatus.err { background: #f2dede; display: block; }
@@ -25,58 +29,33 @@
 </style>
 </head>
 <body>
-<header><strong>Autofill PAITI</strong><span id="who" class="muted" style="color:#cfd8dc"></span></header>
+<header><strong>Autofill PAITI</strong></header>
 <main>
-  <details id="cfg">
-    <summary>Configuración</summary>
-    <div class="row"><label>Usuario</label><input type="text" id="user" placeholder="ej. raul"></div>
-    <div class="row"><label>Entorno</label>
-      <select id="env">
-        <option value="prod">Producción (Render)</option>
-        <option value="dev">Desarrollo (local)</option>
-      </select>
-    </div>
-    <div id="prodBox">
-      <div class="row"><label>Prod URL</label><input type="text" id="prodServer" placeholder="https://tu-servicio.onrender.com"></div>
-      <div class="row"><label>Prod key</label><input type="password" id="prodKey"></div>
-    </div>
-    <div id="devBox" style="display:none">
-      <div class="row"><label>Dev URL</label><input type="text" id="server" placeholder="http://localhost:3000"></div>
-      <div class="row"><label>Dev key</label><input type="password" id="apiKey"></div>
-    </div>
-    <div class="row"><label>Espera (ms)</label><input type="text" id="delay" placeholder="800"></div>
-    <div class="row"><label>Textarea</label>
-      <select id="method">
-        <option value="auto">Automático (prueba varios métodos)</option>
-        <option value="value">Asignar valor</option>
-        <option value="insert">Insertar texto</option>
-        <option value="drop">Simular arrastrar y soltar</option>
-        <option value="type">Teclear carácter por carácter</option>
-      </select>
-    </div>
-    <button id="saveCfg" class="primary">Guardar configuración</button>
-    <div id="cfgStatus"></div>
+  <details id="loginBox" open>
+    <summary><strong>Iniciar sesión</strong></summary>
+    <div class="row"><label>Usuario</label><input type="text" id="user" autocomplete="username"></div>
+    <div class="row"><label>Contraseña</label><input type="password" id="pass" autocomplete="current-password"><button id="eye" type="button" title="Mostrar contraseña">👁</button></div>
+    <button id="login" class="primary">Entrar</button>
   </details>
+  <div id="userBar" class="row" style="display:none">
+    <span style="flex:1">👤 <strong id="userName"></strong></span>
+    <button id="logout">Salir</button>
+  </div>
+  <div id="cfgStatus"></div>
 
-  <h3>Formularios guardados <button id="reload" title="Recargar">↻</button></h3>
-  <div id="list"><span class="muted">Cargando…</span></div>
-
-  <h3>Flujos grabados <button id="reloadFlows" title="Recargar">↻</button></h3>
-  <div id="flows"></div>
-  <button id="rec">● Grabar flujo</button>
+  <div id="listView">
+    <div id="tabs" class="tabs">
+      <button id="tabMine">Mis flujos</button><button id="tabPublic">Públicos</button>
+    </div>
+    <div class="row"><span class="muted" style="flex:1">Flujos</span><button id="reloadFlows" title="Recargar">↻</button></div>
+    <div id="flows"></div>
+    <button id="rec">● Grabar flujo</button>
+  </div>
+  <div id="editbox" style="display:none"></div>
   <div id="recbox" style="display:none"></div>
 
-  <h3>Guardar la página actual</h3>
-  <button id="capture">Capturar campos</button>
-  <div id="captured" style="display:none">
-    <div class="row"><label>Nombre</label><input type="text" id="formName" placeholder="ej. Formulario 1"></div>
-    <div class="row"><label>Botón</label><select id="btnSel"></select></div>
-    <small class="muted">Botón "agregar" que se pulsa entre registros (solo type="button").</small>
-    <div id="fields"></div>
-    <button id="save" class="primary">Guardar formulario</button>
-  </div>
-
   <div id="status"></div>
+
 </main>
 <script src="popup.js"></script>
 </body>
