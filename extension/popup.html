@@ -18,9 +18,9 @@
   .badge { background: #5cb85c; color: #fff; border-radius: 8px; padding: 0 6px; font-size: 11px; }
   .field { border-bottom: 1px solid #eee; padding: 4px 0; }
   .field label.lbl { font-weight: 600; }
-  #status { margin-top: 8px; padding: 6px; border-radius: 3px; display: none; white-space: pre-wrap; }
-  #status.ok { background: #dff0d8; display: block; }
-  #status.err { background: #f2dede; display: block; }
+  #status, #cfgStatus { margin-top: 8px; padding: 6px; border-radius: 3px; display: none; white-space: pre-wrap; word-break: break-word; }
+  #status.ok, #cfgStatus.ok { background: #dff0d8; display: block; }
+  #status.err, #cfgStatus.err { background: #f2dede; display: block; }
   details { margin-bottom: 6px; }
 </style>
 </head>
@@ -32,14 +32,18 @@
     <div class="row"><label>Usuario</label><input type="text" id="user" placeholder="ej. raul"></div>
     <div class="row"><label>Entorno</label>
       <select id="env">
-        <option value="dev">Desarrollo (local)</option>
         <option value="prod">Producción (Render)</option>
+        <option value="dev">Desarrollo (local)</option>
       </select>
     </div>
-    <div class="row"><label>Dev URL</label><input type="text" id="server" placeholder="http://localhost:3000"></div>
-    <div class="row"><label>Dev key</label><input type="password" id="apiKey"></div>
-    <div class="row"><label>Prod URL</label><input type="text" id="prodServer" placeholder="https://tu-servicio.onrender.com"></div>
-    <div class="row"><label>Prod key</label><input type="password" id="prodKey"></div>
+    <div id="prodBox">
+      <div class="row"><label>Prod URL</label><input type="text" id="prodServer" placeholder="https://tu-servicio.onrender.com"></div>
+      <div class="row"><label>Prod key</label><input type="password" id="prodKey"></div>
+    </div>
+    <div id="devBox" style="display:none">
+      <div class="row"><label>Dev URL</label><input type="text" id="server" placeholder="http://localhost:3000"></div>
+      <div class="row"><label>Dev key</label><input type="password" id="apiKey"></div>
+    </div>
     <div class="row"><label>Espera (ms)</label><input type="text" id="delay" placeholder="800"></div>
     <div class="row"><label>Textarea</label>
       <select id="method">
@@ -51,6 +55,7 @@
       </select>
     </div>
     <button id="saveCfg" class="primary">Guardar configuración</button>
+    <div id="cfgStatus"></div>
   </details>
 
   <h3>Formularios guardados <button id="reload" title="Recargar">↻</button></h3>

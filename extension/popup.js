@@ -1,6 +1,20 @@
 const $ = (s) => document.querySelector(s);
+// Valores de producción que ya vienen puestos para tus compañeros (ellos solo escriben su usuario).
+// Rellénalos antes de repartir la carpeta. Ojo: quedan visibles en este archivo.
+const DEFAULT_PROD_URL = '';
+const DEFAULT_PROD_KEY = '';
+
 // server/apiKey = desarrollo; prodServer/prodKey = producción; env elige cuál se usa
-let cfg = { env: 'dev', server: 'http://localhost:3000', apiKey: '', prodServer: '', prodKey: '', user: '', method: 'auto', delay: 800 };
+let cfg = {
+  env: 'prod',
+  server: 'http://localhost:3000',
+  apiKey: '',
+  prodServer: DEFAULT_PROD_URL,
+  prodKey: DEFAULT_PROD_KEY,
+  user: '',
+  method: 'auto',
+  delay: 800,
+};
 let capturedButtons = [];
 let tab = null;
 let captured = []; // [{field, row}]
@@ -17,6 +31,21 @@ function status(msg, ok = true) {
   s.textContent = msg;
   s.className = ok ? 'ok' : 'err';
 }
+
+// Mensajes de configuración: salen debajo del botón "Guardar configuración"
+function cfgStatus(msg, ok = true) {
+  const s = $('#cfgStatus');
+  s.textContent = String(msg).slice(0, 300);
+  s.className = ok ? 'ok' : 'err';
+  if (!ok) $('#cfg').open = true;
+}
+
+function showEnv() {
+  const prod = $('#env').value === 'prod';
+  $('#prodBox').style.display = prod ? '' : 'none';
+  $('#devBox').style.display = prod ? 'none' : '';
+}
+$('#env').onchange = showEnv;
 
 async function api(path, opts = {}) {
   const prod = cfg.env === 'prod';
@@ -90,7 +119,7 @@ async function loadList() {
     }
   } catch (e) {
     box.textContent = '';
-    status('No se pudo conectar al servidor: ' + e.message, false);
+    cfgStatus('No se pudo conectar al servidor: ' + e.message, false);
   }
 }
 
@@ -190,7 +219,7 @@ $('#capture').onclick = async () => {
 
 $('#save').onclick = async () => {
   const name = $('#formName').value.trim();
-  if (!cfg.user) return status('Configura tu usuario primero.', false);
+  if (!cfg.user) return cfgStatus('Configura tu usuario primero.', false);
   if (!name) return status('Ponle un nombre al formulario.', false);
   const fields = captured
     .filter((c) => c.chk.checked)
@@ -227,14 +256,14 @@ $('#saveCfg').onclick = async () => {
     env: $('#env').value,
     server: $('#server').value.trim() || 'http://localhost:3000',
     apiKey: $('#apiKey').value,
-    prodServer: $('#prodServer').value.trim(),
-    prodKey: $('#prodKey').value,
+    prodServer: $('#prodServer').value.trim() || DEFAULT_PROD_URL,
+    prodKey: $('#prodKey').value || DEFAULT_PROD_KEY,
     method: $('#method').value,
     delay: Number($('#delay').value) || 800,
   };
   await chrome.storage.local.set(cfg);
   $('#who').textContent = cfg.user + ' · ' + (cfg.env === 'prod' ? 'PROD' : 'DEV');
-  status('Configuración guardada.');
+  cfgStatus('Configuración guardada.');
   loadList();
 };
 $('#reload').onclick = loadList;
@@ -274,7 +303,7 @@ async function loadFlows() {
       );
     }
   } catch (e) {
-    status('Flujos: ' + e.message, false);
+    cfgStatus('No se pudo cargar los flujos: ' + e.message, false);
   }
 }
 
@@ -364,7 +393,7 @@ async function recState() {
 }
 
 $('#rec').onclick = async () => {
-  if (!cfg.user) return status('Configura tu usuario primero.', false);
+  if (!cfg.user) return cfgStatus('Configura tu usuario primero.', false);
   try {
     await chrome.storage.local.set({ rec: { active: true, page: new URL(tab.url).pathname, steps: [], ignored: [] } });
     await inFrames('startRec');
@@ -380,12 +409,15 @@ $('#reloadFlows').onclick = loadFlows;
 (async () => {
   [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   cfg = { ...cfg, ...(await chrome.storage.local.get(Object.keys(cfg))) };
+  cfg.prodServer = cfg.prodServer || DEFAULT_PROD_URL;
+  cfg.prodKey = cfg.prodKey || DEFAULT_PROD_KEY;
   $('#user').value = cfg.user;
   $('#env').value = cfg.env;
   $('#server').value = cfg.server;
   $('#apiKey').value = cfg.apiKey;
   $('#prodServer').value = cfg.prodServer;
   $('#prodKey').value = cfg.prodKey;
+  showEnv();
   $('#method').value = cfg.method;
   $('#delay').value = cfg.delay;
   $('#who').textContent = cfg.user + ' · ' + (cfg.env === 'prod' ? 'PROD' : 'DEV');
