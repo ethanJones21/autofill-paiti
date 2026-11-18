@@ -1,0 +1,12 @@
+{
+  "version": 2,
+  "skills": {
+    "changelog-generator": {
+      "source": "ComposioHQ/awesome-claude-skills",
+      "commit": "be2a406907dbc61b73e6827ded415c96139d13a2",
+      "sourceType": "github",
+      "skillPath": "changelog-generator/SKILL.md",
+      "computedHash": "5434338dd0ea8f61988d1e9ab2a224a5b461c7ea2e7b7f33db56eab6fb6a4db1"
+    }
+  }
+}

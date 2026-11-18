@@ -1,6 +1,6 @@
 const $ = (s) => document.querySelector(s);
 // URL del servidor. Cámbiala por la de producción antes de repartir la carpeta.
-const SERVER_URL = "http://localhost:3000";
+const SERVER_URL = "https://autofill-paiti.onrender.com"; //"http://localhost:3000";
 
 // Valores fijos: textarea en automático (prueba varios métodos) y espera tras cada clic
 const cfg = { serverUrl: SERVER_URL, method: "auto", delay: 800 };
@@ -8,6 +8,9 @@ let auth = null; // { token, username } o null sin sesión
 let tab = null;
 let allFlows = [];
 let view = "public"; // 'mine' | 'public'
+let loadingFlows = false;
+let slowLoad = false; // el servidor tarda (p. ej. Render despertando)
+let loadSeq = 0;
 let editing = false;
 let recExists = false;
 
@@ -16,6 +19,19 @@ function h(tag, props = {}, ...kids) {
   Object.assign(e, props);
   kids.forEach((k) => e.append(k));
   return e;
+}
+
+// Deshabilita el botón y le pone un spinner mientras dura la acción (evita doble clic)
+async function busy(btn, fn) {
+  if (btn.disabled) return;
+  btn.disabled = true;
+  btn.classList.add("loading");
+  try {
+    return await fn();
+  } finally {
+    btn.disabled = false;
+    btn.classList.remove("loading");
+  }
 }
 
 function status(msg, ok = true) {
@@ -98,10 +114,10 @@ async function doLogin() {
     cfgStatus(e.message, false);
   }
 }
-$("#login").onclick = doLogin;
+$("#login").onclick = () => busy($("#login"), doLogin);
 // Ojo: un onkeydown que devuelve false cancela la tecla, por eso va con llaves
 $("#pass").onkeydown = (e) => {
-  if (e.key === "Enter") doLogin();
+  if (e.key === "Enter") busy($("#login"), doLogin);
 };
 
 // Ojo para ver u ocultar la contraseña mientras se escribe
@@ -114,11 +130,12 @@ $("#eye").onclick = () => {
   p.focus();
 };
 
-$("#logout").onclick = async () => {
-  await setAuth(null);
-  loadFlows();
-  recState();
-};
+$("#logout").onclick = () =>
+  busy($("#logout"), async () => {
+    await setAuth(null);
+    recState();
+    await loadFlows();
+  });
 
 // ---------- Lista de flujos ----------
 const stepText = (s) =>
@@ -127,13 +144,30 @@ const stepText = (s) =>
     : "Campo: " + (s.f.label || s.f.name || s.f.id || s.f.path);
 
 async function loadFlows() {
+  const my = ++loadSeq; // si hay varias cargas seguidas, solo cuenta la última
+  loadingFlows = true;
+  slowLoad = false;
+  renderFlows();
+  const slow = setTimeout(() => {
+    if (my !== loadSeq) return;
+    slowLoad = true;
+    renderFlows();
+  }, 4000);
   try {
-    allFlows = await api("/api/flows");
-    renderFlows();
+    const list = await api("/api/flows");
+    if (my !== loadSeq) return;
+    allFlows = list;
   } catch (e) {
+    if (my !== loadSeq) return;
     allFlows = [];
-    renderFlows();
     cfgStatus("No se pudo conectar al servidor: " + e.message, false);
+  } finally {
+    clearTimeout(slow);
+    if (my === loadSeq) {
+      loadingFlows = false;
+      slowLoad = false;
+      renderFlows();
+    }
   }
 }
 
@@ -148,8 +182,10 @@ function renderFlows() {
   const mine = allFlows.filter((f) => f.mine);
   const pub = allFlows.filter((f) => f.visibility === "public");
   if (!auth) view = "public";
-  $("#tabMine").textContent = "Mis flujos (" + mine.length + ")";
-  $("#tabPublic").textContent = "Públicos (" + pub.length + ")";
+  $("#tabMine").textContent =
+    "Mis flujos" + (loadingFlows ? "" : " (" + mine.length + ")");
+  $("#tabPublic").textContent =
+    "Públicos" + (loadingFlows ? "" : " (" + pub.length + ")");
   $("#tabMine").classList.toggle("active", view === "mine");
   $("#tabPublic").classList.toggle("active", view === "public");
   $("#rec").style.display =
@@ -164,6 +200,27 @@ function renderFlows() {
   );
   const box = $("#flows");
   box.replaceChildren();
+  if (loadingFlows) {
+    // Esqueletos mientras llegan los flujos
+    for (let i = 0; i < 3; i++)
+      box.append(
+        h(
+          "div",
+          { className: "form-item skel" },
+          h("div", { className: "bar1" }),
+          h("div", { className: "bar2" }),
+        ),
+      );
+    if (slowLoad)
+      box.append(
+        h("div", {
+          className: "muted",
+          textContent:
+            "El servidor está despertando, puede tardar unos segundos…",
+        }),
+      );
+    return;
+  }
   if (!list.length)
     box.append(
       h("span", {
@@ -183,7 +240,7 @@ function flowItem(fl, here) {
     textContent: "▶",
     title: "Reproducir",
   });
-  play.onclick = () => doPlay(fl);
+  play.onclick = () => busy(play, () => doPlay(fl));
   const kids = [play];
   if (auth) {
     const clone = h("button", {
@@ -192,7 +249,7 @@ function flowItem(fl, here) {
         ? "Clonar (copia privada para editar)"
         : "Copiar a mis flujos",
     });
-    clone.onclick = () => doClone(fl);
+    clone.onclick = () => busy(clone, () => doClone(fl));
     kids.push(clone);
   }
   if (fl.mine) {
@@ -203,7 +260,7 @@ function flowItem(fl, here) {
       textContent: "✕",
       title: "Eliminar",
     });
-    del.onclick = () => doDelete(fl);
+    del.onclick = () => busy(del, () => doDelete(fl));
     kids.push(edit, del);
   }
   const title = h("div", {}, h("strong", { textContent: fl.name + " " }));
@@ -234,18 +291,18 @@ function flowItem(fl, here) {
 
 async function doPlay(fl) {
   try {
-    status('Reproduciendo "' + fl.name + '"…');
-    const results = await inFrames(
+    // La reproducción corre en la página y avisa con un toast en la esquina;
+    // aquí solo se arranca y se cierra el popup para no estorbar.
+    await inFrames(
       "play",
+      Date.now().toString(36),
+      fl.name,
+      fl.steps.length,
       fl.steps,
       cfg.method,
       Number(cfg.delay) || 800,
     );
-    const ok = results.flatMap((r) => r.filled);
-    const bad = results.flatMap((r) => r.missing);
-    let msg = "Pasos ejecutados: " + ok.length + " de " + fl.steps.length;
-    if (bad.length) msg += "\nProblemas:\n- " + bad.join("\n- ");
-    status(msg, !bad.length);
+    window.close();
   } catch (e) {
     status("Error al reproducir: " + e.message, false);
   }
@@ -255,7 +312,7 @@ async function doClone(fl) {
   try {
     const r = await api("/api/flows/" + fl._id + "/clone", { method: "POST" });
     status('Copia creada: "' + r.name + '" (privada).');
-    loadFlows();
+    await loadFlows();
   } catch (e) {
     status(e.message, false);
   }
@@ -265,7 +322,7 @@ async function doDelete(fl) {
   if (!confirm('¿Eliminar el flujo "' + fl.name + '"?')) return;
   try {
     await api("/api/flows/" + fl._id, { method: "DELETE" });
-    loadFlows();
+    await loadFlows();
   } catch (e) {
     status(e.message, false);
   }
@@ -356,19 +413,20 @@ function renderEditor(box, init, onSave, onCancel, saveLabel) {
   renderSteps();
 
   const save = h("button", { className: "primary", textContent: saveLabel });
-  save.onclick = async () => {
-    if (!name.value.trim()) return status("Ponle un nombre al flujo.", false);
-    if (!draft.length) return status("El flujo no tiene pasos.", false);
-    try {
-      await onSave({
-        name: name.value.trim(),
-        visibility: vis.value,
-        steps: draft,
-      });
-    } catch (e) {
-      status("Error al guardar: " + e.message, false);
-    }
-  };
+  save.onclick = () =>
+    busy(save, async () => {
+      if (!name.value.trim()) return status("Ponle un nombre al flujo.", false);
+      if (!draft.length) return status("El flujo no tiene pasos.", false);
+      try {
+        await onSave({
+          name: name.value.trim(),
+          visibility: vis.value,
+          steps: draft,
+        });
+      } catch (e) {
+        status("Error al guardar: " + e.message, false);
+      }
+    });
   const cancel = h("button", {
     textContent: onCancel.label,
     className: onCancel.danger ? "danger" : "",
@@ -484,7 +542,9 @@ async function recState() {
   );
 }
 
-$("#rec").onclick = async () => {
+$("#rec").onclick = () => busy($("#rec"), startRecording);
+
+async function startRecording() {
   if (!auth) return cfgStatus("Inicia sesión primero.", false);
   try {
     await chrome.storage.local.set({
@@ -504,8 +564,8 @@ $("#rec").onclick = async () => {
     await chrome.storage.local.remove("rec");
     status("No se pudo iniciar la grabación: " + e.message, false);
   }
-};
-$("#reloadFlows").onclick = loadFlows;
+}
+$("#reloadFlows").onclick = () => busy($("#reloadFlows"), loadFlows);
 
 (async () => {
   [tab] = await chrome.tabs.query({ active: true, currentWindow: true });

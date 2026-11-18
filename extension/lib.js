@@ -1,6 +1,6 @@
 // Se inyecta en la página (y en todos sus iframes) desde el popup.
 (() => {
-  if (window.__autofill && window.__autofill.v === 5) return;
+  if (window.__autofill && window.__autofill.v === 6) return;
 
   const SKIP_TYPES = new Set(['hidden', 'submit', 'button', 'reset', 'image', 'file', 'password']);
 
@@ -285,7 +285,7 @@
 
   function onClick(e) {
     if (!recActive || !e.isTrusted || !e.target.closest) return;
-    if (e.target.closest('#__af_panel')) return;
+    if (e.target.closest('#__af_panel,#__af_toast')) return;
     // Botones reales: solo type="button". Submit / <button> sin type se ignoran por seguridad.
     const hard = e.target.closest('button,input[type="button"],input[type="submit"],input[type="image"]');
     if (hard) {
@@ -442,40 +442,173 @@
     return getter();
   }
 
-  async function play(steps, method, delay) {
-    const filled = [];
-    const missing = [];
-    for (let i = 0; i < steps.length; i++) {
-      const s = steps[i];
-      const item = s.k === 'click' ? s.b : s.f;
-      if (item.frame !== location.pathname) continue;
-      const tag = 'paso ' + (i + 1) + ': ';
-      if (s.k === 'fill') {
-        const name = s.f.label || s.f.name || s.f.id || s.f.path;
-        const el = await waitFor(() => find(s.f, fieldsOf()));
-        if (!el) {
-          missing.push(tag + name + ' (no apareció)');
-          continue;
-        }
-        const r = fill([s.f], method);
-        if (r.filled.length) filled.push(tag + name);
-        else missing.push(tag + name);
-        await sleep(50);
-      } else {
-        const name = s.b.label || s.b.id || s.b.path;
-        const b = await waitFor(() => (s.b.g ? findClickable(s.b) : findButton(s.b)));
-        if (!b) {
-          missing.push(tag + 'elemento "' + name + '" no encontrado (se detuvo)');
-          break;
-        }
-        simulateClick(b);
-        filled.push(tag + 'clic en "' + name + '"');
-        await sleep(delay || 800);
-        await waitQuiet();
+  // Cada marco escribe su avance en chrome.storage (clave AFP<run>:<marco>); el marco superior
+  // junta todo y lo muestra como toast. Así funciona aunque el popup ya se haya cerrado.
+  const AFP = 'afp:';
+  const cancelKey = (run) => 'afpcancel:' + run;
+
+  function playToast(run, name, total) {
+    const old = document.getElementById('__af_toast');
+    if (old) old.remove();
+    const host = document.createElement('div');
+    host.id = '__af_toast';
+    host.style.cssText = 'all:initial;position:fixed;right:16px;bottom:16px;z-index:2147483647';
+    const root = host.attachShadow({ mode: 'open' });
+    root.innerHTML =
+      '<style>' +
+      '.t{width:300px;box-sizing:border-box;background:#fff;color:#222;border-radius:14px;padding:12px 14px;font:13px/1.4 system-ui,sans-serif;box-shadow:0 4px 18px rgba(0,0,0,.28);border-left:5px solid #4169e1}' +
+      '.t.ok{border-left-color:#2e9e5b}.t.err{border-left-color:#c0392b}' +
+      '.h{font-weight:600;word-break:break-word}.m{color:#777;margin-top:2px}' +
+      '.bar{height:6px;background:#e6ebfb;border-radius:3px;margin:8px 0;overflow:hidden}.bar i{display:block;height:100%;background:#4169e1;transition:width .2s}' +
+      'ul{margin:8px 0 0;padding-left:18px;max-height:140px;overflow:auto;color:#962d22}li{margin:2px 0;word-break:break-word}' +
+      'button{margin-top:8px;font:inherit;padding:5px 12px;border:1px solid #c8c8c8;border-radius:9px;background:#fff;cursor:pointer}button:hover{background:#f4f4f4}' +
+      '</style><div class="t"></div>';
+    document.documentElement.appendChild(host);
+    const box = root.querySelector('.t');
+
+    let finished = false;
+    let last = Date.now();
+    const add = (tag, cls, text) => {
+      const e = document.createElement(tag);
+      if (cls) e.className = cls;
+      if (text != null) e.textContent = text;
+      box.append(e);
+      return e;
+    };
+    const closeBtn = (label) => {
+      const b = add('button', '', label);
+      b.onclick = () => host.remove();
+    };
+
+    function view(state, done, problems) {
+      box.replaceChildren();
+      box.className = 't' + (state === 'ok' ? ' ok' : state === 'err' ? ' err' : '');
+      if (state === 'run') {
+        add('div', 'h', '▶ Reproduciendo «' + name + '»');
+        const bar = add('div', 'bar');
+        const fillEl = document.createElement('i');
+        fillEl.style.width = Math.min(100, Math.round((done / total) * 100)) + '%';
+        bar.append(fillEl);
+        add('div', 'm', 'Paso ' + Math.min(done + 1, total) + ' de ' + total + (problems.length ? ' · ' + problems.length + ' problema(s)' : ''));
+        const stop = add('button', '', 'Detener');
+        stop.onclick = () => chrome.storage.local.set({ [cancelKey(run)]: true });
+        return;
       }
+      if (state === 'ok') add('div', 'h', '✔ «' + name + '» listo · ' + total + ' pasos');
+      else if (state === 'stopped') add('div', 'h', '■ Reproducción detenida');
+      else add('div', 'h', '⚠ «' + name + '» terminó con ' + problems.length + ' problema(s)');
+      if (problems.length) {
+        const ul = add('ul');
+        problems.forEach((p) => {
+          const li = document.createElement('li');
+          li.textContent = p;
+          ul.append(li);
+        });
+      }
+      if (state === 'err' || problems.length) closeBtn('Cerrar');
+      else setTimeout(() => host.remove(), state === 'ok' ? 4000 : 2500);
     }
-    return { filled, missing };
+
+    async function refresh() {
+      if (finished) return;
+      const all = await chrome.storage.local.get(null);
+      const keys = Object.keys(all).filter((k) => k.startsWith(AFP + run + ':'));
+      const frames = keys.map((k) => all[k]);
+      const done = frames.reduce((n, f) => n + f.done, 0);
+      const problems = frames.flatMap((f) => f.bad);
+      const crashed = frames.some((f) => f.stopped);
+      const cancelled = !!all[cancelKey(run)];
+      if (done + problems.length >= total || crashed || cancelled) {
+        finish(crashed ? 'err' : cancelled ? 'stopped' : problems.length ? 'err' : 'ok', done, problems, keys);
+      } else view('run', done, problems);
+    }
+
+    function finish(state, done, problems, keys) {
+      finished = true;
+      clearInterval(watch);
+      chrome.storage.onChanged.removeListener(onChg);
+      chrome.storage.local.remove([...keys, cancelKey(run)]);
+      view(state, done, problems);
+    }
+
+    const onChg = (c) => {
+      if (Object.keys(c).some((k) => k.startsWith(AFP + run + ':') || k === cancelKey(run))) {
+        last = Date.now();
+        refresh();
+      }
+    };
+    chrome.storage.onChanged.addListener(onChg);
+    // Si algún paso pertenece a un marco que ya no existe, nunca llegaría al total: se cierra por inactividad
+    const watch = setInterval(() => {
+      if (finished || Date.now() - last < 30000) return;
+      finish('err', 0, ['No se ejecutaron todos los pasos (no se encontró su pantalla o marco).'], []);
+    }, 2000);
+    view('run', 0, []);
   }
 
-  window.__autofill = { v: 5, fill, startRec, play };
+  async function runSteps(run, steps, method, delay) {
+    const frameKey = AFP + run + ':' + Math.random().toString(36).slice(2);
+    const st = { done: 0, bad: [], stopped: false };
+    let cancelled = false;
+    const onCancel = (c) => {
+      if (c[cancelKey(run)]) cancelled = true;
+    };
+    chrome.storage.onChanged.addListener(onCancel);
+    const save = () => chrome.storage.local.set({ [frameKey]: { ...st } });
+    const ok = () => {
+      st.done++;
+      save();
+    };
+    const bad = (m) => {
+      st.bad.push(m);
+      save();
+    };
+    try {
+      for (let i = 0; i < steps.length && !cancelled; i++) {
+        const s = steps[i];
+        const item = s.k === 'click' ? s.b : s.f;
+        if (item.frame !== location.pathname) continue;
+        const tag = 'Paso ' + (i + 1) + ': ';
+        if (s.k === 'fill') {
+          const name = s.f.label || s.f.name || s.f.id || s.f.path;
+          const el = await waitFor(() => find(s.f, fieldsOf()));
+          if (!el) {
+            bad(tag + name + ' (no apareció)');
+            continue;
+          }
+          if (fill([s.f], method).filled.length) ok();
+          else bad(tag + 'no se pudo rellenar ' + name);
+          await sleep(50);
+        } else {
+          const name = s.b.label || s.b.id || s.b.path;
+          const b = await waitFor(() => (s.b.g ? findClickable(s.b) : findButton(s.b)));
+          if (!b) {
+            bad(tag + 'no se encontró "' + name + '" (se detuvo)');
+            // Detiene también a los demás marcos
+            st.stopped = true;
+            chrome.storage.local.set({ [cancelKey(run)]: true });
+            break;
+          }
+          simulateClick(b);
+          ok();
+          await sleep(delay || 800);
+          await waitQuiet();
+        }
+      }
+    } catch (e) {
+      st.stopped = true;
+      bad('Error inesperado: ' + e.message);
+    } finally {
+      chrome.storage.onChanged.removeListener(onCancel);
+    }
+  }
+
+  // Devuelve enseguida: la reproducción sigue en la página aunque el popup se cierre
+  function play(run, name, total, steps, method, delay) {
+    if (window === window.top) playToast(run, name, total);
+    runSteps(run, steps, method, delay);
+    return true;
+  }
+
+  window.__autofill = { v: 6, fill, startRec, play };
 })();
