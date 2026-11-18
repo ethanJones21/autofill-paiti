@@ -3,7 +3,7 @@ const crypto = require('crypto');
 const express = require('express');
 const cors = require('cors');
 const { MongoClient, ObjectId } = require('mongodb');
-const { verifyPassword } = require('./auth');
+const { hashPassword, verifyPassword } = require('./auth');
 
 const PORT = process.env.PORT || 3000;
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017';
@@ -84,6 +84,14 @@ app.post('/api/login', wrap(async (req, res) => {
   // Mismo mensaje para usuario inexistente y clave errónea
   if (!user || !verifyPassword(password, user.passwordHash)) return res.status(401).send('Usuario o contraseña incorrectos');
   res.json({ token: makeToken(user), username: user.username });
+}));
+
+// Cambiar la contraseña propia (se guarda hasheada)
+app.post('/api/password', needUser, wrap(async (req, res) => {
+  const password = String((req.body || {}).password || '');
+  if (password.length < 6) return res.status(400).send('La contraseña debe tener al menos 6 caracteres');
+  await users.updateOne({ _id: oid(req.user.id) }, { $set: { passwordHash: hashPassword(password) } });
+  res.json({ ok: true });
 }));
 
 // Públicos (cualquiera) + propios (si hay sesión)

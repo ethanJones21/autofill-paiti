@@ -59,6 +59,7 @@ async function setAuth(a) {
 function showSession() {
   $("#loginBox").style.display = auth ? "none" : "";
   $("#userBar").style.display = auth ? "" : "none";
+  if (!auth) $("#resetBox").style.display = "none";
   $("#userName").textContent = auth ? auth.username : "";
   $("#tabs").style.display = auth ? "" : "none";
   if (!auth) view = "public";
@@ -136,6 +137,33 @@ $("#logout").onclick = () =>
     recState();
     await loadFlows();
   });
+
+// Resetear contraseña: despliega un input para la nueva y se guarda hasheada en el servidor
+$("#resetPw").onclick = () => {
+  const box = $("#resetBox");
+  const show = box.style.display === "none";
+  box.style.display = show ? "" : "none";
+  $("#newPass").value = "";
+  if (show) $("#newPass").focus();
+};
+
+async function doResetPw() {
+  try {
+    await api("/api/password", {
+      method: "POST",
+      body: JSON.stringify({ password: $("#newPass").value }),
+    });
+    $("#newPass").value = "";
+    $("#resetBox").style.display = "none";
+    cfgStatus("Contraseña actualizada.", true);
+  } catch (e) {
+    cfgStatus(e.message, false);
+  }
+}
+$("#savePw").onclick = () => busy($("#savePw"), doResetPw);
+$("#newPass").onkeydown = (e) => {
+  if (e.key === "Enter") busy($("#savePw"), doResetPw);
+};
 
 // ---------- Lista de flujos ----------
 const stepText = (s) =>

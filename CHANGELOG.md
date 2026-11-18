@@ -2,7 +2,7 @@
 
 Todo lo nuevo de Autofill PAITI, explicado sin tecnicismos. Lo más reciente va primero.
 
-## Sin publicar · 18 de noviembre de 2026
+## 1.1.0 · 18 de noviembre de 2026
 
 ### ✨ Novedades
 
@@ -10,6 +10,8 @@ Todo lo nuevo de Autofill PAITI, explicado sin tecnicismos. Lo más reciente va 
 - **Errores a la vista**: si algún paso falla, la tarjeta se pone roja y lista exactamente qué paso falló y por qué. Se queda hasta que la cierres. Si todo sale bien, se pone verde y desaparece sola.
 - **Indicadores de carga**: los flujos muestran un esqueleto animado mientras llegan, y los botones muestran un spinner mientras trabajan (entrar, salir, guardar, clonar, borrar, reproducir, grabar). Si el servidor tarda, avisa que está despertando.
 - **Ojo en la contraseña**: el botón 👁 muestra u oculta lo que escribes.
+- **Cambiar contraseña**: con la sesión iniciada, el botón **Resetear** (a la izquierda de Salir) despliega un campo para escribir la nueva contraseña (mínimo 6 caracteres). Se guarda cifrada.
+- **Ícono propio**: la extensión ahora tiene ícono en la barra del navegador y en la página de extensiones.
 
 ### 🔧 Mejoras
 
