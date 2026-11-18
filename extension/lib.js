@@ -207,7 +207,7 @@
 
   function mark(el) {
     const old = el.style.outline;
-    el.style.outline = '2px solid #5cb85c';
+    el.style.outline = '2px solid #62B755';
     setTimeout(() => (el.style.outline = old), 1500);
   }
 
@@ -386,12 +386,12 @@
       p = document.createElement('div');
       p.id = '__af_panel';
       p.style.cssText =
-        'position:fixed;right:12px;bottom:12px;z-index:2147483647;background:#c0392b;color:#fff;padding:8px 12px;border-radius:4px;font:13px system-ui,sans-serif;box-shadow:0 2px 8px rgba(0,0,0,.4)';
+        'position:fixed;right:12px;bottom:12px;z-index:2147483647;background:#C41922;color:#fff;padding:8px 12px;border-radius:4px;font:13px system-ui,sans-serif;box-shadow:0 2px 8px rgba(0,0,0,.4)';
       document.body.appendChild(p);
     }
     p.replaceChildren();
     if (rec.active) {
-      p.style.background = '#c0392b';
+      p.style.background = '#C41922';
       p.append('● Grabando · ' + rec.steps.length + ' pasos · ');
       const b = document.createElement('button');
       b.type = 'button';
@@ -405,7 +405,7 @@
       };
       p.append(b);
     } else {
-      p.style.background = '#27ae60';
+      p.style.background = '#62B755';
       p.textContent = 'Grabación lista (' + rec.steps.length + ' pasos). Abre el popup de la extensión para guardarla.';
       setTimeout(() => p.remove(), 8000);
     }
@@ -456,11 +456,11 @@
     const root = host.attachShadow({ mode: 'open' });
     root.innerHTML =
       '<style>' +
-      '.t{width:300px;box-sizing:border-box;background:#fff;color:#222;border-radius:14px;padding:12px 14px;font:13px/1.4 system-ui,sans-serif;box-shadow:0 4px 18px rgba(0,0,0,.28);border-left:5px solid #4169e1}' +
-      '.t.ok{border-left-color:#2e9e5b}.t.err{border-left-color:#c0392b}' +
+      '.t{width:300px;box-sizing:border-box;background:#fff;color:#222;border-radius:14px;padding:12px 14px;font:13px/1.4 system-ui,sans-serif;box-shadow:0 4px 18px rgba(0,0,0,.28);border-left:5px solid #62B755}' +
+      '.t.ok{border-left-color:#62B755}.t.err{border-left-color:#C41922}' +
       '.h{font-weight:600;word-break:break-word}.m{color:#777;margin-top:2px}' +
-      '.bar{height:6px;background:#e6ebfb;border-radius:3px;margin:8px 0;overflow:hidden}.bar i{display:block;height:100%;background:#4169e1;transition:width .2s}' +
-      'ul{margin:8px 0 0;padding-left:18px;max-height:140px;overflow:auto;color:#962d22}li{margin:2px 0;word-break:break-word}' +
+      '.bar{height:6px;background:#E4F2E1;border-radius:3px;margin:8px 0;overflow:hidden}.bar i{display:block;height:100%;background:#62B755;transition:width .2s}' +
+      'ul{margin:8px 0 0;padding-left:18px;max-height:140px;overflow:auto;color:#C41922}li{margin:2px 0;word-break:break-word}' +
       'button{margin-top:8px;font:inherit;padding:5px 12px;border:1px solid #c8c8c8;border-radius:9px;background:#fff;cursor:pointer}button:hover{background:#f4f4f4}' +
       '</style><div class="t"></div>';
     document.documentElement.appendChild(host);

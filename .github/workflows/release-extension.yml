@@ -1,0 +1,31 @@
+name: Release extension
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verificar que el tag coincide con manifest.json
+        run: |
+          manifest=$(jq -r .version extension/manifest.json)
+          tag="${GITHUB_REF_NAME#v}"
+          if [ "$manifest" != "$tag" ]; then
+            echo "El tag ($tag) no coincide con la versión del manifest ($manifest)"
+            exit 1
+          fi
+
+      - name: Comprimir solo la carpeta extension
+        run: cd extension && zip -r ../autofill-paiti-extension.zip .
+
+      - name: Crear Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" autofill-paiti-extension.zip --title "$GITHUB_REF_NAME" --generate-notes
