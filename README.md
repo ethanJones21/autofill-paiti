@@ -13,11 +13,11 @@ npm start
 
 Variables del `.env` (también en Render):
 
-| Variable | Para qué |
-| --- | --- |
-| `PORT` | Puerto (3000 por defecto) |
-| `MONGO_URI` | Conexión a MongoDB |
-| `DB_NAME` | Base de datos (`autofill_paiti` por defecto) |
+| Variable       | Para qué                                                                                                                                             |
+| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `PORT`         | Puerto (3000 por defecto)                                                                                                                            |
+| `MONGO_URI`    | Conexión a MongoDB                                                                                                                                   |
+| `DB_NAME`      | Base de datos (`autofill_paiti` por defecto)                                                                                                         |
 | `TOKEN_SECRET` | Texto largo y aleatorio que firma las sesiones. Obligatorio: sin él el servidor no arranca. Si lo cambias, todos tienen que volver a iniciar sesión. |
 
 Colecciones:
@@ -35,26 +35,26 @@ Escribe en la base del `.env` donde lo ejecutes. Para crear usuarios en producci
 
 ### API
 
-| Método y ruta | Quién | Qué hace |
-| --- | --- | --- |
-| `POST /api/login` | Cualquiera | Devuelve un token (vale 30 días) |
-| `GET /api/flows` | Cualquiera | Sin sesión, los públicos; con sesión, los tuyos y los públicos |
-| `POST /api/flows` | Con sesión | Crea un flujo |
-| `PUT /api/flows/:id` | Solo el dueño | Edita nombre, visibilidad y pasos |
-| `POST /api/flows/:id/clone` | Con sesión | Copia privada de un flujo tuyo o público |
-| `DELETE /api/flows/:id` | Solo el dueño | Elimina |
+| Método y ruta               | Quién         | Qué hace                                                       |
+| --------------------------- | ------------- | -------------------------------------------------------------- |
+| `POST /api/login`           | Cualquiera    | Devuelve un token (vale 30 días)                               |
+| `GET /api/flows`            | Cualquiera    | Sin sesión, los públicos; con sesión, los tuyos y los públicos |
+| `POST /api/flows`           | Con sesión    | Crea un flujo                                                  |
+| `PUT /api/flows/:id`        | Solo el dueño | Edita nombre, visibilidad y pasos                              |
+| `POST /api/flows/:id/clone` | Con sesión    | Copia privada de un flujo tuyo o público                       |
+| `DELETE /api/flows/:id`     | Solo el dueño | Elimina                                                        |
 
 ## 2. Extensión
 
-Chrome → `chrome://extensions` → activar *Modo desarrollador* → *Cargar descomprimida* → carpeta `extension`. Después de cambiar el código, recarga la extensión y la pestaña donde pruebes.
+Chrome → `chrome://extensions` → activar _Modo desarrollador_ → _Cargar descomprimida_ → carpeta `extension`. Después de cambiar el código, recarga la extensión y la pestaña donde pruebes.
 
 Antes de repartir la carpeta, cambia `SERVER_URL` al inicio de `extension/popup.js` por la URL de producción.
 
 ## 3. Uso
 
-1. **Iniciar sesión**: desplegable (▼) arriba del popup. Con sesión solo se ve tu usuario y *Salir*. El ojo 👁 muestra u oculta la contraseña.
-2. **Grabar**: en *Mis flujos*, pulsa **● Grabar flujo**, trabaja en la página y para con el panel rojo. Reabre el popup, ajusta los pasos, ponle nombre y elige Privado o Público → *Guardar flujo*.
-3. **Pestañas**: *Mis flujos* (tus privados y públicos) y *Públicos* (de todos). Sin sesión solo existe *Públicos*.
+1. **Iniciar sesión**: desplegable (▼) arriba del popup. Con sesión solo se ve tu usuario y _Salir_. El ojo 👁 muestra u oculta la contraseña.
+2. **Grabar**: en _Mis flujos_, pulsa **● Grabar flujo**, trabaja en la página y para con el panel rojo. Reabre el popup, ajusta los pasos, ponle nombre y elige Privado o Público → _Guardar flujo_.
+3. **Pestañas**: _Mis flujos_ (tus privados y públicos) y _Públicos_ (de todos). Sin sesión solo existe _Públicos_.
 4. **Acciones** de cada flujo:
    - **▶** reproduce.
    - **⧉** clona. La copia es privada, y sirve también para copiar un flujo público ajeno.
@@ -62,7 +62,8 @@ Antes de repartir la carpeta, cambia `SERVER_URL` al inicio de `extension/popup.
    - **✕** elimina.
 
    Editar y eliminar son solo para el dueño.
-5. **Reproducción**: al pulsar ▶ el popup se cierra y la página muestra un aviso abajo a la derecha. Mientras corre, tiene barra de progreso y botón *Detener*. Si termina bien, se pone verde y se quita solo. Si hay problemas, queda una tarjeta roja con la lista de errores y un botón *Cerrar*.
+
+5. **Reproducción**: al pulsar ▶ el popup se cierra y la página muestra un aviso abajo a la derecha. Mientras corre, tiene barra de progreso y botón _Detener_. Si termina bien, se pone verde y se quita solo. Si hay problemas, queda una tarjeta roja con la lista de errores y un botón _Cerrar_.
 6. **Cargas**: la lista muestra esqueletos mientras llega, y los botones muestran un spinner mientras trabajan. Si el servidor tarda más de 4 segundos, avisa que está despertando.
 
 Un flujo público expone los valores escritos en sus pasos. Revísalos antes de publicar.
@@ -81,3 +82,13 @@ Si la página usa plugins (select2, bootstrap-select, editores WYSIWYG) puede re
 
 - Los flujos de la versión anterior no tienen dueño (`ownerId`), así que ya no aparecen. Siguen en la base. La colección `forms` ya no se usa.
 - El servidor borra al arrancar el índice antiguo `user_1_name_1` de `flows`.
+
+## Para instalar skills
+
+```bash
+npx skills@latest install
+```
+
+```bash
+npx skills install -g
+```
